@@ -1,6 +1,10 @@
 {
 "projectId": "sd9-bank",
 "datasetId": "sd9dataset",
-"tableId": "Accounts",
-"bucketName": "sd9-bank.appspot.com"
+"tableIds": ["Accounts"],
+"exportDir": "results/",
+"ftpHost": "ftp.server.com",
+"ftpUser": "username",
+"ftpPassword": "pass",
+"ftpDir": "my/results"
 }

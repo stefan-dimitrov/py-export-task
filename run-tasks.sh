@@ -1,3 +1,3 @@
 #!/bin/sh
 
-env/bin/python exporter.py client_secret.json jobConfig.json jobConfig2.json
+env/bin/python tableExporter.py client_secret.json jobConfig.json

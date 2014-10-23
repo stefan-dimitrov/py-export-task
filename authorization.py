@@ -22,7 +22,7 @@ def loadCredentials(fileName):
     return flow
 
 
-def authorize(secretJsonFile):
+def authorizeBQ(secretJsonFile):
     FLOW = flow_from_clientsecrets(secretJsonFile, 'https://www.googleapis.com/auth/bigquery')
 
     # If the credentials don't exist or are invalid, run the native client
