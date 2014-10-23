@@ -43,8 +43,8 @@ def loadJobConfig(fileName):
     return jobConfig
 
 
-def exportTable(http, service):
-    jobConfig = loadJobConfig('jobConfig.json')
+def exportTable(http, service, jobConfigFile='jobConfig.json'):
+    jobConfig = loadJobConfig(jobConfigFile)
 
     projectId = jobConfig['projectId']
     datasetId = jobConfig['datasetId']
@@ -85,7 +85,10 @@ def exportTable(http, service):
 
 
 def main(argv):
-    FLOW = loadCredentials('''client_secret.json''')
+    secretJsonFile = argv[1]
+    jobConfigFiles = argv[2:]
+
+    FLOW = loadCredentials(secretJsonFile)
 
     # If the credentials don't exist or are invalid, run the native client
     # auth flow. The Storage object will ensure that if successful the good
@@ -101,7 +104,9 @@ def main(argv):
     http = credentials.authorize(http)
 
     service = build('bigquery', 'v2', http=http)
-    exportTable(http, service)
+
+    for jobConfigFile in jobConfigFiles:
+        exportTable(http, service, jobConfigFile)
 
 
 if __name__ == '__main__':
