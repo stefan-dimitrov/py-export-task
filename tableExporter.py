@@ -62,7 +62,11 @@ def uploadToFtp(fileList, remoteDir, host, user, password):
 
     for fileItem in fileList:
         fileName = os.path.split(fileItem)[1]
-        ftps.storlines('STOR {0}'.format(os.path.join(remoteDir, fileName)), open(fileItem))
+        remoteFilePath = os.path.join(remoteDir, fileName)
+
+        print('Uploading file [{0}] to ftp at [{1}]'.format(fileName, remoteFilePath))
+        ftps.storlines('STOR {0}'.format(remoteFilePath), open(fileItem))
+        print('Done.')
 
     ftps.quit()
 
@@ -88,10 +92,16 @@ def main(argv):
     fileList = []
 
     for tableId in jobConfig['tableIds']:
+        print('Starting export of {0}:{1}.{2}'.format(projectId, datasetId, tableId))
         rowList = exportTable(service, projectId, datasetId, tableId)
-        fileList.append(writeTableToCSV(tableId, rowList, exportDir))
+        csvFile = writeTableToCSV(tableId, rowList, exportDir)
 
+        fileList.append(csvFile)
+        print('Wrote file [{0}]'.format(csvFile))
+
+    print('Opening ftp connection ({0})'.format(ftpHost))
     uploadToFtp(fileList, ftpDir, ftpHost, ftpUser, ftpPassword)
+    print('Export job complete.')
 
 
 if __name__ == '__main__':
