@@ -6,7 +6,7 @@ sudo apt-get install python-pip
 echo 'Installing virtualenv'
 sudo pip install virtualenv
 
-virtualenv venv
+virtualenv env
 
 echo 'Installing libraries'
-venv/bin/python venv/bin/pip install -r requirements.txt
+env/bin/python env/bin/pip install -r requirements.txt
