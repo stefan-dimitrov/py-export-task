@@ -1,0 +1,6 @@
+{
+"projectId": "sd9-bank",
+"datasetId": "sd9dataset",
+"tableId": "Accounts",
+"bucketName": "sd9-bank.appspot.com"
+}
