@@ -21,7 +21,7 @@ def writeGsFilePaths(pathsList, fileName):
         localFile.write('\n'.join(pathsList))
 
 
-def exportTable(http, service, projectId, datasetId, tableId, bucketName):
+def exportTable(service, projectId, datasetId, tableId, bucketName):
 
     gsObject = '{0}_{1}_*.csv'.format(tableId, datetime.utcnow())
     gsFilePath = 'gs://{0}/{1}'.format(bucketName, gsObject)
@@ -65,9 +65,12 @@ def main(argv):
     secretJsonFile = argv[1]
     jobConfigFile = argv[2]
 
-    gsFilePathList = _bqExport(loadJobConfig(jobConfigFile), secretJsonFile)
+    jobConfig = loadJobConfig(jobConfigFile)
 
-    writeGsFilePaths(gsFilePathList, 'exported_files.txt')
+    gsObjectList = _bqExport(jobConfig, secretJsonFile)
+    # _gcsDownload(jobConfig, secretJsonFile, gsObjectList)
+
+    # writeGsFilePaths(gsObjectList, 'exported_files.txt')
 
 
 def _gcsDownload(jobConfig, secretJsonFile, gsObjectList):
@@ -78,7 +81,7 @@ def _gcsDownload(jobConfig, secretJsonFile, gsObjectList):
     exportDir = jobConfig['exportDir']
 
     for gsObject in gsObjectList:
-        #TODO: resolve wildcards in gsObject
+        #TODO: resolve wildcards in gsObject name
         download(service, bucketName, gsObject, os.path.join(exportDir, gsObject))
 
 
@@ -94,7 +97,7 @@ def _bqExport(jobConfig, secretJsonFile):
 
     gsObjectList = []
     for tableId in tableIds:
-        gsObjectList.append(exportTable(http, service, projectId, datasetId, tableId, bucketName))
+        gsObjectList.append(exportTable(service, projectId, datasetId, tableId, bucketName))
 
     return gsObjectList
 
