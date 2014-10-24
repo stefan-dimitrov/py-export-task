@@ -19,16 +19,13 @@ def writeGsFilePaths(pathsList, fileName):
         localFile.write('\n'.join(pathsList))
 
 
-def exportTable(http, service, jobConfigFile='jobConfig.json'):
-    jobConfig = loadJobConfig(jobConfigFile)
+def exportTable(http, service, jobConfig):
 
     projectId = jobConfig['projectId']
     datasetId = jobConfig['datasetId']
     tableId = jobConfig['tableId']
     bucketName = jobConfig['bucketName']
-    gsFilePath = 'gs://{0}/{1}_{2}_*.csv'.format(bucketName, tableId, datetime.utcnow())
-
-    url = "https://www.googleapis.com/bigquery/v2/projects/" + projectId + "/jobs"
+    gsFilePath = 'gs://{0}/{1}_{2}_*.csv'.format(bucketName, tableId, datetime.now())
 
     jobCollection = service.jobs()
     jobData = {
@@ -75,7 +72,8 @@ def main(argv):
 
     gsFilePathList = []
     for jobConfigFile in jobConfigFiles:
-        gsFilePathList.append(exportTable(http, service, jobConfigFile))
+        jobConfig = loadJobConfig(jobConfigFile)
+        gsFilePathList.append(exportTable(http, service, jobConfig))
 
     writeGsFilePaths(gsFilePathList, 'exported_files.txt')
 
