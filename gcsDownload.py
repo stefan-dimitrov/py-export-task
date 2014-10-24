@@ -5,9 +5,10 @@ import sys
 import time
 
 from googleapiclient.errors import HttpError
-from googleapiclient.http import MediaFileUpload
 from googleapiclient.http import MediaIoBaseDownload
+from googleapiclient.discovery import build as discovery_build
 
+from authorization import authorizeGCS
 
 # Retry transport and file IO errors.
 RETRYABLE_ERRORS = (httplib2.HttpLib2Error, IOError)
@@ -73,3 +74,14 @@ def handle_progressless_iter(error, progressless_iters):
     print ('Caught exception (%s). Sleeping for %s seconds before retry #%d.'
            % (str(error), sleeptime, progressless_iters))
     time.sleep(sleeptime)
+
+
+def main():
+    http = authorizeGCS('client_secret.json')
+    service = discovery_build('storage', 'v1', http=http)
+
+    download(service, 'sd9-bank.appspot.com', 'file-for-test.txt', 'local-for-test.txt')
+
+
+if __name__ == '__main__':
+    main()
