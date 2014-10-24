@@ -3,7 +3,9 @@ from googleapiclient.discovery import build
 
 import json
 from datetime import datetime
-from authorization import authorizeBQ
+from authorization import authorizeBQ, authorizeGCS
+from gcsDownload import download
+import os
 
 
 def loadJobConfig(fileName):
@@ -19,13 +21,10 @@ def writeGsFilePaths(pathsList, fileName):
         localFile.write('\n'.join(pathsList))
 
 
-def exportTable(http, service, jobConfig):
+def exportTable(http, service, projectId, datasetId, tableId, bucketName):
 
-    projectId = jobConfig['projectId']
-    datasetId = jobConfig['datasetId']
-    tableId = jobConfig['tableId']
-    bucketName = jobConfig['bucketName']
-    gsFilePath = 'gs://{0}/{1}_{2}_*.csv'.format(bucketName, tableId, datetime.now())
+    gsObject = '{0}_{1}_*.csv'.format(tableId, datetime.utcnow())
+    gsFilePath = 'gs://{0}/{1}'.format(bucketName, gsObject)
 
     jobCollection = service.jobs()
     jobData = {
@@ -59,23 +58,45 @@ def exportTable(http, service, jobConfig):
 
     print('Wrote file(s) {0} to cloud storage.'.format(gsFilePath))
 
-    return gsFilePath
+    return gsObject
 
 
 def main(argv):
     secretJsonFile = argv[1]
-    jobConfigFiles = argv[2:]
+    jobConfigFile = argv[2]
 
+    gsFilePathList = _bqExport(loadJobConfig(jobConfigFile), secretJsonFile)
+
+    writeGsFilePaths(gsFilePathList, 'exported_files.txt')
+
+
+def _gcsDownload(jobConfig, secretJsonFile, gsObjectList):
+    http = authorizeGCS(secretJsonFile)
+    service = build('storage', 'v1', http=http)
+
+    bucketName = jobConfig['bucketName']
+    exportDir = jobConfig['exportDir']
+
+    for gsObject in gsObjectList:
+        #TODO: resolve wildcards in gsObject
+        download(service, bucketName, gsObject, os.path.join(exportDir, gsObject))
+
+
+def _bqExport(jobConfig, secretJsonFile):
     http = authorizeBQ(secretJsonFile)
 
     service = build('bigquery', 'v2', http=http)
 
-    gsFilePathList = []
-    for jobConfigFile in jobConfigFiles:
-        jobConfig = loadJobConfig(jobConfigFile)
-        gsFilePathList.append(exportTable(http, service, jobConfig))
+    projectId = jobConfig['projectId']
+    datasetId = jobConfig['datasetId']
+    tableIds = jobConfig['tableIds']
+    bucketName = jobConfig['bucketName']
 
-    writeGsFilePaths(gsFilePathList, 'exported_files.txt')
+    gsObjectList = []
+    for tableId in tableIds:
+        gsObjectList.append(exportTable(http, service, projectId, datasetId, tableId, bucketName))
+
+    return gsObjectList
 
 if __name__ == '__main__':
     main(sys.argv)

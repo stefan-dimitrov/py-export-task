@@ -34,6 +34,7 @@ def download(service, bucketName, objectName, filename):
     f = file(filename, 'w')
     request = service.objects().get_media(bucket=bucketName,
                                           object=objectName)
+
     media = MediaIoBaseDownload(f, request, chunksize=CHUNKSIZE)
 
     print 'Downloading bucket: %s object: %s to file: %s' % (bucketName,
@@ -42,6 +43,7 @@ def download(service, bucketName, objectName, filename):
 
     progressless_iters = 0
     done = False
+
     while not done:
         error = None
         try:
@@ -80,7 +82,7 @@ def main():
     http = authorizeGCS('client_secret.json')
     service = discovery_build('storage', 'v1', http=http)
 
-    download(service, 'sd9-bank.appspot.com', 'file-for-test.txt', 'local-for-test.txt')
+    download(service, 'sd9-bank.appspot.com', 'Accounts_2014-10-23 10:32:09.238163_000000000000.csv', 'local-for-test.txt')
 
 
 if __name__ == '__main__':
