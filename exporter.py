@@ -67,10 +67,24 @@ def main(argv):
 
     jobConfig = loadJobConfig(jobConfigFile)
 
-    gsObjectList = _bqExport(jobConfig, secretJsonFile)
+    http = authorizeGCS(secretJsonFile)
+    service = build('storage', 'v1', http=http)
+
+    bucketName = jobConfig['bucketName']
+
+
+    # gsObjectList = _bqExport(jobConfig, secretJsonFile)
     # _gcsDownload(jobConfig, secretJsonFile, gsObjectList)
 
     # writeGsFilePaths(gsObjectList, 'exported_files.txt')
+
+
+def listFilesInBucket(service, bucketName):
+    req = service.objects().list(bucket=bucketName,
+                                 fields='nextPageToken, items(name)')
+    resp = req.execute()
+
+    return [i['name'] for i in resp['items']]
 
 
 def _gcsDownload(jobConfig, secretJsonFile, gsObjectList):
@@ -79,6 +93,8 @@ def _gcsDownload(jobConfig, secretJsonFile, gsObjectList):
 
     bucketName = jobConfig['bucketName']
     exportDir = jobConfig['exportDir']
+
+    bucketObjectList = listFilesInBucket(service, bucketName)
 
     for gsObject in gsObjectList:
         #TODO: resolve wildcards in gsObject name
@@ -102,5 +118,6 @@ def _bqExport(jobConfig, secretJsonFile):
     return gsObjectList
 
 if __name__ == '__main__':
-    main(sys.argv)
+    # main(sys.argv)
+    main(['', 'client_secret.json', 'jobConfig.json'])
 

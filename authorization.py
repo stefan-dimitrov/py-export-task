@@ -23,7 +23,7 @@ def loadCredentials(fileName):
 
 
 def authorizeBQ(secretJsonFile):
-    FLOW = flow_from_clientsecrets(secretJsonFile, 'https://www.googleapis.com/auth/bigquery')
+    FLOW = flow_from_clientsecrets(secretJsonFile, scope='https://www.googleapis.com/auth/bigquery')
 
     # If the credentials don't exist or are invalid, run the native client
     # auth flow. The Storage object will ensure that if successful the good
@@ -39,7 +39,7 @@ def authorizeGCS(secretJsonFile):
     :type secretJsonFile: basestring
     :rtype : httplib2.Http
     """
-    FLOW = flow_from_clientsecrets(secretJsonFile, 'https://www.googleapis.com/auth/devstorage.read_only')
+    FLOW = flow_from_clientsecrets(secretJsonFile, scope='https://www.googleapis.com/auth/devstorage.read_only')
 
     # If the credentials don't exist or are invalid, run the native client
     # auth flow. The Storage object will ensure that if successful the good

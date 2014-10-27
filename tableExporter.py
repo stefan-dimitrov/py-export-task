@@ -17,44 +17,6 @@ def loadJobConfig(fileName):
     return jobConfig
 
 
-def exportTable(service, projectId, datasetId, tableId):
-
-    queryData = {'query': 'SELECT * FROM [{0}:{1}.{2}];'.format(projectId, datasetId, tableId)}
-
-    jobCollection = service.jobs()
-    queryResponse = jobCollection.query(projectId=projectId, body=queryData).execute()
-
-    rowDataList = [[]]
-
-    # Extract column names
-    for field in queryResponse['schema']['fields']:
-        rowDataList[0].append(field['name'])
-
-    # Extract row data
-    for row in queryResponse['rows']:
-        resultRow = []
-        for field in row['f']:
-            resultRow.append(field['v'])
-
-        rowDataList.append(resultRow)
-
-    return rowDataList
-
-
-def writeTableToCSV(tableId, rowList, directoryPath, delimiter=','):
-    if not os.path.exists(directoryPath):
-        os.makedirs(directoryPath)
-
-    fileName = '{0}_{1}.csv'.format(tableId, datetime.now())
-    fullFilePath = os.path.join(directoryPath, fileName)
-
-    with open(fullFilePath, 'w') as csvFile:
-        lines = ['%s\n' % (delimiter.join(i)) for i in rowList]
-        csvFile.writelines(lines)
-
-    return fullFilePath
-
-
 def uploadToFtp(fileList, remoteDir, host, user, password):
     ftps = FTP_TLS(host)
     ftps.sendcmd('USER %s' % user)
@@ -91,18 +53,6 @@ def main(argv):
 
     fileList = []
 
-    for tableId in jobConfig['tableIds']:
-        print('Starting export of {0}:{1}.{2}'.format(projectId, datasetId, tableId))
-        rowList = exportTable(service, projectId, datasetId, tableId)
-        csvFile = writeTableToCSV(tableId, rowList, exportDir)
-
-        fileList.append(csvFile)
-        print('Wrote file [{0}]'.format(csvFile))
-
     print('Opening ftp connection ({0})'.format(ftpHost))
     uploadToFtp(fileList, ftpDir, ftpHost, ftpUser, ftpPassword)
     print('Export job complete.')
-
-
-if __name__ == '__main__':
-    main(sys.argv)
