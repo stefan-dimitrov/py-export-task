@@ -1,28 +1,14 @@
-import json
 from oauth2client.file import Storage
 from oauth2client.client import OAuth2WebServerFlow, flow_from_clientsecrets
 from oauth2client.tools import run
 import httplib2
 
 
-def loadCredentials(fileName):
-    with open(fileName, 'r') as jsonFile:
-        jsonData = jsonFile.read()
-        credentialData = json.loads(jsonData)
-
-    installedCredentials = credentialData['installed']
-
-    flow = OAuth2WebServerFlow(
-        client_id=installedCredentials['client_id'],
-        client_secret=installedCredentials['client_secret'],
-        scope='https://www.googleapis.com/auth/bigquery',
-        user_agent='sd9-bank/1.0'
-    )
-
-    return flow
-
-
 def authorizeBQ(secretJsonFile):
+    """
+    :type secretJsonFile: basestring
+    :rtype : httplib2.Http
+    """
     FLOW = flow_from_clientsecrets(secretJsonFile, scope='https://www.googleapis.com/auth/bigquery')
 
     # If the credentials don't exist or are invalid, run the native client

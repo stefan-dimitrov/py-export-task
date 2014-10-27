@@ -1,3 +1,5 @@
+import sys
+from ftplib import FTP_TLS
 from googleapiclient.discovery import build, Resource
 
 import json
@@ -17,11 +19,6 @@ def loadJobConfig(fileName):
         jobConfig = json.loads(jsonData)
 
     return jobConfig
-
-
-def writeGsFilePaths(pathsList, fileName):
-    with open(fileName, 'w') as localFile:
-        localFile.write('\n'.join(pathsList))
 
 
 def exportTable(service, projectId, datasetId, tableId, bucketName):
@@ -71,18 +68,6 @@ def exportTable(service, projectId, datasetId, tableId, bucketName):
     return gsObject
 
 
-def main(argv):
-    secretJsonFile = argv[1]
-    jobConfigFile = argv[2]
-
-    jobConfig = loadJobConfig(jobConfigFile)
-
-    gsObjectList = _bqExport(jobConfig, secretJsonFile)
-    _gcsDownload(jobConfig, secretJsonFile, gsObjectList)
-
-    # writeGsFilePaths(gsObjectList, 'exported_files.txt')
-
-
 def listFilesInBucket(service, bucketName, namePrefix=''):
     """
     :type service: Resource
@@ -121,11 +106,12 @@ def resolveWildcardGsObject(objectName, service, bucketName):
     return resolvedList
 
 
-def _gcsDownload(jobConfig, secretJsonFile, gsObjectList):
+def gcsDownload(jobConfig, secretJsonFile, gsObjectList):
     """
     :type jobConfig: dict
     :type secretJsonFile: basestring
     :type gsObjectList: list
+    :rtype : list
     """
     http = authorizeGCS(secretJsonFile)
     service = build('storage', 'v1', http=http)
@@ -139,11 +125,16 @@ def _gcsDownload(jobConfig, secretJsonFile, gsObjectList):
     for rawGsObject in gsObjectList:
         resolvedGsObjectList.extend(resolveWildcardGsObject(rawGsObject, service, bucketName))
 
+    localFileList = []
     for gsObject in resolvedGsObjectList:
-        download(service, bucketName, gsObject, os.path.join(exportDir, gsObject))
+        localFilePath = os.path.join(exportDir, gsObject)
+        download(service, bucketName, gsObject, localFilePath)
+        localFileList.append(localFilePath)
+
+    return localFileList
 
 
-def _bqExport(jobConfig, secretJsonFile):
+def bqExport(jobConfig, secretJsonFile):
     """
     :type jobConfig: dict
     :type secretJsonFile: basestring
@@ -164,7 +155,50 @@ def _bqExport(jobConfig, secretJsonFile):
 
     return gsObjectList
 
+
+def uploadToFtp(fileList, remoteDir, host, user, password):
+    """
+    :type fileList: list
+    :type remoteDir: basestring
+    :type host: basestring
+    :type user: basestring
+    :type password: basestring
+    """
+
+    ftps = FTP_TLS(host)
+    ftps.sendcmd('USER %s' % user)
+    ftps.sendcmd('PASS %s' % password)
+
+    for fileItem in fileList:
+        fileName = os.path.split(fileItem)[1]
+        remoteFilePath = os.path.join(remoteDir, fileName)
+
+        print('Uploading file [{0}] to ftp at [{1}]'.format(fileName, remoteFilePath))
+        ftps.storlines('STOR {0}'.format(remoteFilePath), open(fileItem))
+        print('Done.')
+
+    ftps.quit()
+
+
+def main(argv):
+    secretJsonFile = argv[0]
+    jobConfigFile = argv[1]
+
+    jobConfig = loadJobConfig(jobConfigFile)
+
+    gsObjectList = bqExport(jobConfig, secretJsonFile)
+    localFileList = gcsDownload(jobConfig, secretJsonFile, gsObjectList)
+
+    ftpHost = jobConfig['ftpHost']
+    ftpUser = jobConfig['ftpUser']
+    ftpPassword = jobConfig['ftpPassword']
+    ftpDir = jobConfig['ftpDir']
+
+    print('Opening ftp connection ({0})'.format(ftpHost))
+    uploadToFtp(localFileList, ftpDir, ftpHost, ftpUser, ftpPassword)
+    print('Export job complete.')
+
+
 if __name__ == '__main__':
-    # main(sys.argv)
-    main(['', 'client_secret.json', 'jobConfig.json'])
+    main(sys.argv[1:])
 
