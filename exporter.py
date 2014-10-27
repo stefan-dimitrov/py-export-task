@@ -175,7 +175,7 @@ def uploadToFtp(fileList, remoteDir, host, user, password):
         remoteFilePath = os.path.join(remoteDir, fileName)
 
         print('Uploading file [{0}] to ftp at [{1}]'.format(fileName, remoteFilePath))
-        ftps.storlines('STOR {0}'.format(remoteFilePath), open(fileItem))
+        ftps.storbinary('STOR {0}'.format(remoteFilePath), open(fileItem))
         print('Done.')
 
     ftps.quit()
