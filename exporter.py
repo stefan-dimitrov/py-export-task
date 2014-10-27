@@ -119,7 +119,8 @@ def gcsDownload(jobConfig, secretJsonFile, gsObjectList):
     bucketName = jobConfig['bucketName']
     exportDir = jobConfig['exportDir']
 
-    os.makedirs(exportDir)
+    if not os.path.exists(exportDir):
+        os.makedirs(exportDir)
 
     resolvedGsObjectList = []
     for rawGsObject in gsObjectList:
