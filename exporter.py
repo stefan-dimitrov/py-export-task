@@ -1,5 +1,4 @@
-import sys
-from googleapiclient.discovery import build
+from googleapiclient.discovery import build, Resource
 
 import json
 from datetime import datetime
@@ -9,6 +8,10 @@ import os
 
 
 def loadJobConfig(fileName):
+    """
+    :type fileName: basestring
+    :rtype : dict
+    """
     with open(fileName, 'r') as jsonFile:
         jsonData = jsonFile.read()
         jobConfig = json.loads(jsonData)
@@ -22,7 +25,14 @@ def writeGsFilePaths(pathsList, fileName):
 
 
 def exportTable(service, projectId, datasetId, tableId, bucketName):
-
+    """
+    :type service: Resource
+    :type projectId: basestring
+    :type datasetId: basestring
+    :type tableId: basestring
+    :type bucketName: basestring
+    :rtype : basestring
+    """
     gsObject = '{0}_{1}_*.csv'.format(tableId, datetime.utcnow())
     gsFilePath = 'gs://{0}/{1}'.format(bucketName, gsObject)
 
@@ -67,41 +77,78 @@ def main(argv):
 
     jobConfig = loadJobConfig(jobConfigFile)
 
-    http = authorizeGCS(secretJsonFile)
-    service = build('storage', 'v1', http=http)
-
-    bucketName = jobConfig['bucketName']
-
-
-    # gsObjectList = _bqExport(jobConfig, secretJsonFile)
-    # _gcsDownload(jobConfig, secretJsonFile, gsObjectList)
+    gsObjectList = _bqExport(jobConfig, secretJsonFile)
+    _gcsDownload(jobConfig, secretJsonFile, gsObjectList)
 
     # writeGsFilePaths(gsObjectList, 'exported_files.txt')
 
 
-def listFilesInBucket(service, bucketName):
+def listFilesInBucket(service, bucketName, namePrefix=''):
+    """
+    :type service: Resource
+    :type bucketName: basestring
+    :type namePrefix: basestring
+    :rtype : list
+    """
     req = service.objects().list(bucket=bucketName,
+                                 prefix=namePrefix,
                                  fields='nextPageToken, items(name)')
     resp = req.execute()
+
+    if not resp:
+        return []
 
     return [i['name'] for i in resp['items']]
 
 
+def resolveWildcardGsObject(objectName, service, bucketName):
+    """
+    :type objectName: basestring
+    :type service: Resource
+    :type bucketName : basestring
+    :rtype : list
+    """
+
+    resolvedList = []
+
+    wildcardIndex = objectName.find('*', 0)
+    if wildcardIndex > 0:
+        resolvedList = listFilesInBucket(service, bucketName, objectName[:wildcardIndex])
+
+    else:
+        resolvedList.append(objectName)
+
+    return resolvedList
+
+
 def _gcsDownload(jobConfig, secretJsonFile, gsObjectList):
+    """
+    :type jobConfig: dict
+    :type secretJsonFile: basestring
+    :type gsObjectList: list
+    """
     http = authorizeGCS(secretJsonFile)
     service = build('storage', 'v1', http=http)
 
     bucketName = jobConfig['bucketName']
     exportDir = jobConfig['exportDir']
 
-    bucketObjectList = listFilesInBucket(service, bucketName)
+    os.makedirs(exportDir)
 
-    for gsObject in gsObjectList:
-        #TODO: resolve wildcards in gsObject name
+    resolvedGsObjectList = []
+    for rawGsObject in gsObjectList:
+        resolvedGsObjectList.extend(resolveWildcardGsObject(rawGsObject, service, bucketName))
+
+    for gsObject in resolvedGsObjectList:
         download(service, bucketName, gsObject, os.path.join(exportDir, gsObject))
 
 
 def _bqExport(jobConfig, secretJsonFile):
+    """
+    :type jobConfig: dict
+    :type secretJsonFile: basestring
+    :rtype : list
+    """
     http = authorizeBQ(secretJsonFile)
 
     service = build('bigquery', 'v2', http=http)

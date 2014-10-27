@@ -1,7 +1,7 @@
 {
     "projectId": "sd9-bank",
     "datasetId": "sd9dataset",
-    "tableIds": ["Accounts"],
+    "tableIds": ["Accounts", "shakespeare_test"],
     "bucketName": "sd9-bank.appspot.com",
     "exportDir": "results/",
     "ftpHost": "ftp.server.com",
